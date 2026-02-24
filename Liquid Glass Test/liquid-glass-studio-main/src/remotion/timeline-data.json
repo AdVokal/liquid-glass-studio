@@ -4,6 +4,13 @@
   "durationFrames": 360,
   "events": [
     {
+      "id": "evt-4mn63mh",
+      "frame": 0,
+      "componentId": "GlassPanel",
+      "action": "SetPosition",
+      "params": {}
+    },
+    {
       "id": "evt-001",
       "frame": 60,
       "componentId": "GlassPanel",

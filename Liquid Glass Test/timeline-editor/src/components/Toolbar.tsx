@@ -8,9 +8,27 @@ interface ToolbarProps {
   onSave: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onDurationChange: (v: number) => void;
+  onFpsChange: (v: number) => void;
 }
 
-export default function Toolbar({ durationFrames, fps, isDirty, onAdd, onUndo, onRedo, onSave, canUndo, canRedo }: ToolbarProps) {
+const INPUT_STYLE: React.CSSProperties = {
+  width: '52px',
+  textAlign: 'center',
+  background: 'var(--color-bg)',
+  border: '1px solid var(--color-border)',
+  padding: '2px 4px',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 'var(--font-size)',
+  color: 'var(--color-text-primary)',
+};
+
+export default function Toolbar({
+  durationFrames, fps, isDirty,
+  onAdd, onUndo, onRedo, onSave,
+  canUndo, canRedo,
+  onDurationChange, onFpsChange,
+}: ToolbarProps) {
   return (
     <div style={{
       display: 'flex',
@@ -23,11 +41,25 @@ export default function Toolbar({ durationFrames, fps, isDirty, onAdd, onUndo, o
       flexShrink: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <span style={{ fontWeight: 600, letterSpacing: '0.08em' }}>
-          TIMELINE EDITOR
-        </span>
-        <span style={{ color: 'var(--color-text-secondary)' }}>
-          {durationFrames} fr / {fps} fps
+        <span style={{ fontWeight: 600, letterSpacing: '0.08em' }}>UI STUDIO — TIMELINE</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
+          <input
+            type="number"
+            value={durationFrames}
+            min={1}
+            style={{ ...INPUT_STYLE, width: '56px' }}
+            onChange={e => { const v = Number(e.target.value); if (v > 0) onDurationChange(v); }}
+          />
+          fr /
+          <input
+            type="number"
+            value={fps}
+            min={1}
+            max={120}
+            style={{ ...INPUT_STYLE, width: '40px' }}
+            onChange={e => { const v = Number(e.target.value); if (v > 0) onFpsChange(v); }}
+          />
+          fps
         </span>
       </div>
       <div style={{ display: 'flex', gap: '8px' }}>

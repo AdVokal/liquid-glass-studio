@@ -23,6 +23,8 @@ const GRID_SIZE = 60;
 export interface TimelineState {
   sizeMultiplier: number;
   isExpanded: boolean;
+  panelX?: number;
+  panelY?: number;
 }
 
 export interface LiquidGlassSettings {
@@ -224,8 +226,8 @@ function App({ timelineState, overrideWidth, overrideHeight, onReady, onFrameRea
     if (!timelineState) return;
     const w = Math.round(settings.width * timelineState.sizeMultiplier);
     const h = Math.round(settings.height * timelineState.sizeMultiplier);
-    const x = (viewportSize.width - w) / 2;
-    const y = (viewportSize.height - h) / 2;
+    const x = timelineState.panelX !== undefined ? timelineState.panelX : (viewportSize.width - w) / 2;
+    const y = timelineState.panelY !== undefined ? timelineState.panelY : (viewportSize.height - h) / 2;
     stateRef.current.panelPos = { x, y };
     stateRef.current.panelSize = { width: w, height: h };
     renderRef.current?.();
@@ -463,8 +465,8 @@ function App({ timelineState, overrideWidth, overrideHeight, onReady, onFrameRea
     return lines;
   }, [viewportSize]);
 
-  const centeredX = (viewportSize.width - timelinePanelWidth) / 2;
-  const centeredY = (viewportSize.height - timelinePanelHeight) / 2;
+  const centeredX = timelineState?.panelX !== undefined ? timelineState.panelX : (viewportSize.width - timelinePanelWidth) / 2;
+  const centeredY = timelineState?.panelY !== undefined ? timelineState.panelY : (viewportSize.height - timelinePanelHeight) / 2;
 
   return (
     <div

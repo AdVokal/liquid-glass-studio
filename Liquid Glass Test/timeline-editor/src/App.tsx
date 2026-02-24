@@ -18,6 +18,7 @@ export default function App() {
   const [registry, setRegistry] = useState<ComponentRegistry | null>(null);
   const [fps, setFps] = useState(60);
   const [durationFrames, setDurationFrames] = useState(360);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
@@ -37,14 +38,14 @@ export default function App() {
       .then((data: TimelineData) => {
         setFps(data.fps);
         setDurationFrames(data.durationFrames);
-        setRows(data.events.map(e => ({
+        setRows([...data.events.map(e => ({
           id: e.id,
           frame: e.frame,
           componentId: e.componentId,
           action: e.action,
           params: e.params,
           spring: e.spring,
-        })));
+        }))].sort((a, b) => a.frame - b.frame));
       })
       .catch(console.error);
   }, []);
@@ -52,7 +53,7 @@ export default function App() {
   const updateRows = useCallback((newRows: TimelineRow[]) => {
     setUndoStack(stack => [...stack.slice(-(MAX_UNDO - 1)), rowsRef.current]);
     setRedoStack([]);
-    setRows(newRows);
+    setRows([...newRows].sort((a, b) => a.frame - b.frame));
     setIsDirty(true);
   }, []);
 
@@ -114,20 +115,25 @@ export default function App() {
     updateRows([...rowsRef.current, newRow]);
   }, [durationFrames, registry, updateRows]);
 
+  const onRulerFrameChange = useCallback((id: string, frame: number) => {
+    updateRows(rowsRef.current.map(r => r.id === id ? { ...r, frame } : r));
+  }, [updateRows]);
+
+  const onFpsChange = useCallback((v: number) => {
+    setFps(v);
+    setIsDirty(true);
+  }, []);
+
+  const onDurationChange = useCallback((v: number) => {
+    setDurationFrames(v);
+    setIsDirty(true);
+  }, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        redo();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        save();
-      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -145,17 +151,25 @@ export default function App() {
         onSave={save}
         canUndo={undoStack.length > 0}
         canRedo={redoStack.length > 0}
+        onFpsChange={onFpsChange}
+        onDurationChange={onDurationChange}
       />
       <FrameRuler
         durationFrames={durationFrames}
         fps={fps}
         rows={rows}
+        selectedRowId={selectedRowId}
+        onRowFrameChange={onRulerFrameChange}
+        onRowClick={setSelectedRowId}
       />
       <TimelineTable
         rows={rows}
         fps={fps}
         registry={registry}
         onChange={updateRows}
+        selectedRowId={selectedRowId}
+        onRowSelect={setSelectedRowId}
+        durationFrames={durationFrames}
       />
     </div>
   );

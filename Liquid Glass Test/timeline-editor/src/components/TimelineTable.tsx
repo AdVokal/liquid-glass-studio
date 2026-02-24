@@ -2,32 +2,34 @@ import { useState, useRef, useCallback } from 'react';
 import type { TimelineRow, ComponentRegistry } from '../lib/types';
 import { frameToTimecode, timecodeToFrame, generateId } from '../lib/utils';
 
+const COLORS = ['#2563EB', '#D946EF', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
+function componentColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) { hash = ((hash << 5) - hash) + id.charCodeAt(i); hash |= 0; }
+  return COLORS[Math.abs(hash) % COLORS.length];
+}
+
 interface TimelineTableProps {
   rows: TimelineRow[];
   fps: number;
   registry: ComponentRegistry | null;
   onChange: (rows: TimelineRow[]) => void;
+  selectedRowId: string | null;
+  onRowSelect: (id: string | null) => void;
+  durationFrames: number;
 }
 
-interface ContextMenu {
-  x: number;
-  y: number;
-  rowIndex: number;
-}
+interface ContextMenu { x: number; y: number; rowIndex: number }
+interface AutocompleteState { rowId: string; query: string; open: boolean }
 
-interface AutocompleteState {
-  rowId: string;
-  query: string;
-  open: boolean;
-}
-
-export default function TimelineTable({ rows, fps, registry, onChange }: TimelineTableProps) {
+export default function TimelineTable({ rows, fps, registry, onChange, selectedRowId, onRowSelect, durationFrames }: TimelineTableProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [autocomplete, setAutocomplete] = useState<AutocompleteState | null>(null);
   const dragSourceRef = useRef<number | null>(null);
 
   const updateRow = useCallback((id: string, patch: Partial<TimelineRow>) => {
-    onChange(rows.map(r => r.id === id ? { ...r, ...patch } : r));
+    const updated = rows.map(r => r.id === id ? { ...r, ...patch } : r);
+    onChange([...updated].sort((a, b) => a.frame - b.frame));
   }, [rows, onChange]);
 
   const deleteRow = useCallback((index: number) => {
@@ -44,7 +46,7 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
     };
     const next = [...rows];
     next.splice(index, 0, newRow);
-    onChange(next);
+    onChange([...next].sort((a, b) => a.frame - b.frame));
   }, [rows, registry, onChange]);
 
   const getComponentMeta = (id: string) =>
@@ -62,17 +64,10 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
       .map(c => ({ id: c.id, label: c.displayName }));
   };
 
-  const CELL_STYLE: React.CSSProperties = {
-    padding: '0 8px',
-    borderRight: '1px solid var(--color-border)',
-    verticalAlign: 'middle',
-  };
+  const CELL: React.CSSProperties = { padding: '0 8px', borderRight: '1px solid var(--color-border)', verticalAlign: 'middle' };
 
   return (
-    <div
-      style={{ flex: 1, overflow: 'auto' }}
-      onClick={() => setContextMenu(null)}
-    >
+    <div style={{ flex: 1, overflow: 'auto' }} onClick={() => setContextMenu(null)}>
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <colgroup>
           <col style={{ width: '28px' }} />
@@ -84,23 +79,9 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
           <col style={{ width: '32px' }} />
         </colgroup>
         <thead>
-          <tr style={{
-            background: 'var(--color-surface)',
-            borderBottom: '1px solid var(--color-border)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 1,
-          }}>
+          <tr style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 1 }}>
             {['≡', 'FRAME', 'TIME', 'COMPONENT', 'ACTION', 'PARAMS', '×'].map(h => (
-              <th key={h} style={{
-                ...CELL_STYLE,
-                height: 'var(--row-height)',
-                textAlign: 'left',
-                fontWeight: 600,
-                letterSpacing: '0.06em',
-                color: 'var(--color-text-secondary)',
-                borderRight: h !== '×' ? '1px solid var(--color-border)' : 'none',
-              }}>
+              <th key={h} style={{ ...CELL, height: 'var(--row-height)', textAlign: 'left', fontWeight: 600, letterSpacing: '0.06em', color: 'var(--color-text-secondary)', borderRight: h !== '×' ? '1px solid var(--color-border)' : 'none' }}>
                 {h}
               </th>
             ))}
@@ -111,77 +92,73 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
             const compMeta = getComponentMeta(row.componentId);
             const actionDef = getActionDef(row.componentId, row.action);
             const isACOpen = autocomplete?.rowId === row.id && autocomplete.open;
+            const isSelected = row.id === selectedRowId;
+            const color = componentColor(row.componentId);
 
             return (
               <tr
                 key={row.id}
                 draggable
+                onClick={() => onRowSelect(row.id)}
                 onDragStart={() => { dragSourceRef.current = index; }}
-                onDragOver={e => { e.preventDefault(); }}
+                onDragOver={e => e.preventDefault()}
                 onDrop={() => {
                   if (dragSourceRef.current === null || dragSourceRef.current === index) return;
-                  const next = [...rows];
-                  const [moved] = next.splice(dragSourceRef.current, 1);
-                  next.splice(index, 0, moved);
-                  onChange(next);
+                  const sourceIndex = dragSourceRef.current;
+                  const targetIndex = index;
+                  const draggedRow = rows[sourceIndex];
+                  const withoutDragged = rows.filter((_, i) => i !== sourceIndex);
+                  const insertAt = targetIndex > sourceIndex ? targetIndex - 1 : targetIndex;
+                  const prevRow = insertAt > 0 ? withoutDragged[insertAt - 1] : null;
+                  const nextRow = insertAt < withoutDragged.length ? withoutDragged[insertAt] : null;
+                  let newFrame: number;
+                  if (!prevRow && !nextRow) newFrame = draggedRow.frame;
+                  else if (!prevRow) newFrame = Math.max(0, nextRow!.frame - 30);
+                  else if (!nextRow) newFrame = Math.min(durationFrames, prevRow.frame + 30);
+                  else newFrame = Math.round((prevRow.frame + nextRow.frame) / 2);
+                  const result = [...withoutDragged];
+                  result.splice(insertAt, 0, { ...draggedRow, frame: newFrame });
+                  onChange(result.sort((a, b) => a.frame - b.frame));
                   dragSourceRef.current = null;
                 }}
-                onContextMenu={e => {
-                  e.preventDefault();
-                  setContextMenu({ x: e.clientX, y: e.clientY, rowIndex: index });
-                }}
+                onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, rowIndex: index }); }}
                 style={{
                   height: 'var(--row-height)',
                   borderBottom: '1px solid var(--color-border)',
-                  background: index % 2 === 0 ? 'var(--color-bg)' : 'var(--color-surface)',
+                  background: isSelected ? 'rgba(37,99,235,0.08)' : (index % 2 === 0 ? 'var(--color-bg)' : 'var(--color-surface)'),
+                  borderLeft: isSelected ? `3px solid ${color}` : '3px solid transparent',
+                  cursor: 'default',
                 }}
               >
-                <td style={{ ...CELL_STYLE, cursor: 'grab', color: 'var(--color-text-secondary)', textAlign: 'center' }}>
-                  ≡
+                <td style={{ ...CELL, cursor: 'grab', color: 'var(--color-text-secondary)', textAlign: 'center' }}>≡</td>
+
+                <td style={CELL}>
+                  <input type="number" value={row.frame} min={0} onChange={e => updateRow(row.id, { frame: Number(e.target.value) })} />
                 </td>
 
-                <td style={CELL_STYLE}>
-                  <input
-                    type="number"
-                    value={row.frame}
-                    min={0}
-                    onChange={e => updateRow(row.id, { frame: Number(e.target.value) })}
-                  />
-                </td>
-
-                <td style={CELL_STYLE}>
+                <td style={CELL}>
                   <input
                     type="text"
                     value={frameToTimecode(row.frame, fps)}
-                    onChange={e => {
-                      const f = timecodeToFrame(e.target.value, fps);
-                      if (!isNaN(f) && f >= 0) updateRow(row.id, { frame: f });
-                    }}
+                    onChange={e => { const f = timecodeToFrame(e.target.value, fps); if (!isNaN(f) && f >= 0) updateRow(row.id, { frame: f }); }}
                     placeholder="00:00:00:00"
                   />
                 </td>
 
-                <td style={{ ...CELL_STYLE, position: 'relative' }}>
-                  <input
-                    type="text"
-                    value={isACOpen ? autocomplete.query : (compMeta?.displayName ?? row.componentId)}
-                    onFocus={() => setAutocomplete({ rowId: row.id, query: compMeta?.displayName ?? row.componentId, open: true })}
-                    onChange={e => setAutocomplete({ rowId: row.id, query: e.target.value, open: true })}
-                    onBlur={() => setTimeout(() => setAutocomplete(null), 150)}
-                    placeholder="Component..."
-                  />
+                <td style={{ ...CELL, position: 'relative' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                    <input
+                      type="text"
+                      value={isACOpen ? autocomplete.query : (compMeta?.displayName ?? row.componentId)}
+                      onFocus={() => setAutocomplete({ rowId: row.id, query: compMeta?.displayName ?? row.componentId, open: true })}
+                      onChange={e => setAutocomplete({ rowId: row.id, query: e.target.value, open: true })}
+                      onBlur={() => setTimeout(() => setAutocomplete(null), 150)}
+                      placeholder="Component..."
+                    />
+                  </div>
                   {isACOpen && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--color-border)',
-                      zIndex: 100,
-                      maxHeight: '120px',
-                      overflowY: 'auto',
-                    }}>
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--color-surface)', border: '1px solid var(--color-border)', zIndex: 100, maxHeight: '120px', overflowY: 'auto' }}>
                       {autocompleteOptions(autocomplete.query).map(opt => (
                         <div
                           key={opt.id}
@@ -190,10 +167,11 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
                             updateRow(row.id, { componentId: opt.id, action: firstAction, params: {} });
                             setAutocomplete(null);
                           }}
-                          style={{ padding: '6px 8px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)' }}
+                          style={{ padding: '6px 8px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '6px' }}
                           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
                           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
                         >
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: componentColor(opt.id), flexShrink: 0 }} />
                           {opt.label}
                         </div>
                       ))}
@@ -201,20 +179,14 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
                   )}
                 </td>
 
-                <td style={CELL_STYLE}>
-                  <select
-                    value={row.action}
-                    onChange={e => updateRow(row.id, { action: e.target.value, params: {} })}
-                    style={{ width: '100%' }}
-                  >
-                    {(compMeta?.actions ?? []).map(a => (
-                      <option key={a.id} value={a.id}>{a.label}</option>
-                    ))}
+                <td style={CELL}>
+                  <select value={row.action} onChange={e => updateRow(row.id, { action: e.target.value, params: {} })} style={{ width: '100%' }}>
+                    {(compMeta?.actions ?? []).map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
                     {!compMeta && <option value={row.action}>{row.action}</option>}
                   </select>
                 </td>
 
-                <td style={CELL_STYLE}>
+                <td style={CELL}>
                   {actionDef && actionDef.params.length > 0 ? (
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {actionDef.params.map(p => (
@@ -223,8 +195,7 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
                           <input
                             type={p.type === 'number' ? 'number' : 'text'}
                             value={String(row.params[p.id] ?? p.default)}
-                            min={p.min}
-                            max={p.max}
+                            min={p.min} max={p.max}
                             onChange={e => {
                               const val: number | string = p.type === 'number' ? Number(e.target.value) : e.target.value;
                               updateRow(row.id, { params: { ...row.params, [p.id]: val } });
@@ -240,12 +211,7 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
                 </td>
 
                 <td style={{ padding: 0, textAlign: 'center' }}>
-                  <button
-                    onClick={() => deleteRow(index)}
-                    style={{ border: 'none', color: 'var(--color-text-secondary)', padding: '0 8px', width: '100%', height: 'var(--row-height)' }}
-                  >
-                    ×
-                  </button>
+                  <button onClick={e => { e.stopPropagation(); deleteRow(index); }} style={{ border: 'none', color: 'var(--color-text-secondary)', padding: '0 8px', width: '100%', height: 'var(--row-height)' }}>×</button>
                 </td>
               </tr>
             );
@@ -260,30 +226,14 @@ export default function TimelineTable({ rows, fps, registry, onChange }: Timelin
       )}
 
       {contextMenu && (
-        <div style={{
-          position: 'fixed',
-          left: contextMenu.x,
-          top: contextMenu.y,
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          zIndex: 1000,
-          minWidth: '160px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-        }}>
+        <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, background: 'var(--color-surface)', border: '1px solid var(--color-border)', zIndex: 1000, minWidth: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
           {[
             { label: 'Insert row above', action: () => insertRow(contextMenu.rowIndex) },
             { label: 'Insert row below', action: () => insertRow(contextMenu.rowIndex + 1) },
             { label: 'Delete', action: () => deleteRow(contextMenu.rowIndex) },
           ].map(item => (
-            <div
-              key={item.label}
-              onClick={() => { item.action(); setContextMenu(null); }}
-              style={{
-                padding: '8px 12px',
-                cursor: 'pointer',
-                borderBottom: '1px solid var(--color-border)',
-                color: item.label === 'Delete' ? '#DC2626' : 'var(--color-text-primary)',
-              }}
+            <div key={item.label} onClick={() => { item.action(); setContextMenu(null); }}
+              style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)', color: item.label === 'Delete' ? '#DC2626' : 'var(--color-text-primary)' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
             >

@@ -71,6 +71,27 @@ export function DashboardComposition() {
   const lastCollapseFrame = collapseEvents.reduce((max, e) => Math.max(max, e.frame), -1);
   const isExpanded = lastExpandFrame > lastCollapseFrame;
 
+  const firedPositionEvents = timelineData.events
+    .filter(e => e.componentId === 'GlassPanel' && e.action === 'SetPosition' && e.frame <= frame)
+    .sort((a, b) => a.frame - b.frame);
+
+  let panelX: number | undefined;
+  let panelY: number | undefined;
+
+  if (firedPositionEvents.length > 0) {
+    const latest = firedPositionEvents[firedPositionEvents.length - 1];
+    const prev = firedPositionEvents.length > 1 ? firedPositionEvents[firedPositionEvents.length - 2] : null;
+    const defaultX = (width - 259) / 2;
+    const defaultY = (height - 124) / 2;
+    const targetX = Number(latest.params.x ?? defaultX);
+    const targetY = Number(latest.params.y ?? defaultY);
+    const startX = prev ? Number(prev.params.x ?? defaultX) : defaultX;
+    const startY = prev ? Number(prev.params.y ?? defaultY) : defaultY;
+    const t = spring({ fps, frame: frame - latest.frame, config: latest.spring ?? DEFAULT_SPRING, from: 0, to: 1 });
+    panelX = startX + (targetX - startX) * t;
+    panelY = startY + (targetY - startY) * t;
+  }
+
   const segments = getSegments(
     timelineData.events.filter(e => e.componentId === 'GlassPanel'),
     timelineData.durationFrames
@@ -79,7 +100,7 @@ export function DashboardComposition() {
   return (
     <AbsoluteFill>
       <App
-        timelineState={{ sizeMultiplier, isExpanded }}
+        timelineState={{ sizeMultiplier, isExpanded, panelX, panelY }}
         overrideWidth={width}
         overrideHeight={height}
         onReady={onReady}
