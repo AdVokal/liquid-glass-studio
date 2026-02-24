@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "components": [
+    {
+      "id": "GlassPanel",
+      "displayName": "Glass Panel",
+      "actions": [
+        { "id": "Expand",   "label": "Expand",   "params": [] },
+        { "id": "Collapse", "label": "Collapse",  "params": [] },
+        {
+          "id": "SetPosition", "label": "Set Position",
+          "params": [
+            { "id": "x", "label": "X", "type": "number", "default": 0, "min": 0, "max": 3840 },
+            { "id": "y", "label": "Y", "type": "number", "default": 0, "min": 0, "max": 536 }
+          ]
+        },
+        {
+          "id": "SetSize", "label": "Set Size",
+          "params": [
+            { "id": "width",  "label": "Width",  "type": "number", "default": 259 },
+            { "id": "height", "label": "Height", "type": "number", "default": 124 }
+          ]
+        }
+      ]
+    }
+  ]
+}

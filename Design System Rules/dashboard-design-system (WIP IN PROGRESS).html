@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HMI Design System</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070709;--bg2:#0c0c10;--bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);
+  --txt:rgba(255,255,255,0.92);--txt2:rgba(255,255,255,0.55);--txt3:rgba(255,255,255,0.28);
+  --acc:#3d8ef0;--warn:#f05a28;--adc:#00e87a;
+  --ngo_bg:rgba(220,50,30,0.07);--ngo_bd:rgba(220,50,30,0.5);
+}
+html,body{background:var(--bg);color:var(--txt);font-family:'SF Mono','Fira Code',monospace;font-size:11px;line-height:1.5;height:100%;overflow:hidden}
+.app{display:flex;height:100vh}
+/* SIDEBAR */
+.sb{width:265px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
+.sb-h{padding:11px 12px 8px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.sb-t{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt2)}
+.sb-s{font-size:7px;color:var(--txt3);margin-top:2px}
+.sb-b{overflow-y:auto;flex:1;padding:7px 0 20px}
+.vg{padding:0 11px;margin-top:9px}
+.vg-h{font-size:6.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt3);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.04)}
+.vr{margin-bottom:8px}
+.vr-t{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+.vr-l{font-size:8px;color:var(--txt2)}
+.vr-v{font-size:8.5px;color:var(--acc);font-weight:500}
+.vr-s{font-size:6.5px;color:var(--txt3);margin-top:1px}
+input[type=range]{width:100%;height:2px;background:rgba(255,255,255,.1);border-radius:2px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--acc);cursor:pointer}
+.dbox{margin:7px 11px 0;padding:6px 8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:3px;font-size:7.5px;color:var(--txt3);line-height:2}
+.dbox span{color:var(--acc)}
+.rbox{margin:6px 11px 0;padding:5px 8px;background:rgba(61,142,240,.05);border:1px solid rgba(61,142,240,.14);border-radius:3px;font-size:7px;color:rgba(61,142,240,.6);line-height:1.8}
+.rbox b{color:var(--acc)}
+.rbtn{display:block;width:calc(100% - 22px);margin:9px 11px 0;padding:5px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:3px;color:var(--txt3);font-family:inherit;font-size:8px;cursor:pointer;text-align:center;transition:background 100ms}
+.rbtn:hover{background:rgba(255,255,255,.07);color:var(--txt)}
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+nav{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--bdr);padding:0 12px;flex-shrink:0}
+.tb{padding:8px 10px;background:none;border:none;border-bottom:2px solid transparent;color:var(--txt3);font-family:inherit;font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color 100ms,border-color 100ms;white-space:nowrap}
+.tb:hover{color:var(--txt2)}.tb.on{color:var(--acc);border-bottom-color:var(--acc)}
+.zr{display:flex;align-items:center;gap:7px;margin-left:auto;font-size:7.5px;color:var(--txt3)}
+.zr input[type=range]{width:70px}
+#zv{color:var(--acc);min-width:30px}
+.panels{flex:1;overflow-y:auto}
+.pn{display:none;padding:16px 18px 48px}.pn.on{display:block}
+/* UTILS */
+.sh{font-size:7px;letter-spacing:.15em;text-transform:uppercase;color:var(--txt3);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.05);margin-top:24px}
+.sh:first-child{margin-top:0}
+.t{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:9.5px}
+.t th{text-align:left;padding:5px 9px;background:rgba(255,255,255,.02);color:var(--txt3);font-size:6.5px;letter-spacing:.09em;text-transform:uppercase;border-bottom:1px solid var(--bdr);font-weight:normal}
+.t td{padding:5px 9px;border-bottom:1px solid rgba(255,255,255,.025);vertical-align:middle}
+.t tr:hover td{background:rgba(255,255,255,.01)}
+.m{color:var(--acc)}.d{color:var(--txt3);font-size:8.5px}.w{color:var(--warn)}.g{color:var(--adc)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.bdg{display:inline-block;padding:1px 5px;border-radius:2px;font-size:6.5px;letter-spacing:.05em;text-transform:uppercase}
+.bw{background:rgba(240,90,40,.1);color:var(--warn);border:1px solid rgba(240,90,40,.25)}
+.bg{background:rgba(0,232,122,.06);color:var(--adc);border:1px solid rgba(0,232,122,.18)}
+.ba{background:rgba(61,142,240,.08);color:var(--acc);border:1px solid rgba(61,142,240,.22)}
+[data-tip]{position:relative;cursor:help}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#141418;border:1px solid var(--bdr2);color:rgba(255,255,255,.85);padding:6px 10px;border-radius:3px;font-size:8px;line-height:1.7;white-space:pre;z-index:9999;pointer-events:none;opacity:0;transition:opacity 100ms;min-width:160px;max-width:280px;box-shadow:0 8px 24px rgba(0,0,0,.7)}
+[data-tip]:hover::after{opacity:1}
+/* PREVIEW */
+.pw{width:100%;overflow-x:auto;background:#030305;border:1px solid var(--bdr);border-radius:3px;padding:10px;margin-bottom:9px}
+.dash{position:relative;margin:0 auto;background:#0a0a0e}
+/* GRID TYPES */
+.gtbar{display:flex;gap:4px;margin-bottom:9px;flex-wrap:wrap}
+.gtb{padding:3px 9px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:2px;color:var(--txt3);font-family:inherit;font-size:7px;letter-spacing:.07em;cursor:pointer;transition:all 80ms}
+.gtb:hover{color:var(--txt2);background:rgba(255,255,255,.06)}.gtb.on{color:var(--acc);border-color:rgba(61,142,240,.36);background:rgba(61,142,240,.06)}
+.gdw{width:100%;overflow-x:auto;border:1px solid var(--bdr);border-radius:2px;background:#030305;padding:7px;margin-bottom:11px}
+.gd{height:95px;background:#0a0a0e;position:relative;border:1px solid rgba(255,255,255,.05)}
+/* COMPONENTS */
+.cr{display:flex;align-items:center;gap:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.025)}
+.cb{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:6.5px;color:rgba(255,255,255,.28);flex-shrink:0;cursor:help;border-radius:3px;transition:border-color 100ms}
+.cb:hover{border-color:var(--acc);color:var(--txt2)}
+.cl{font-size:9px;color:var(--txt2);min-width:190px}.cs{font-size:9px;color:var(--acc);min-width:150px;font-family:inherit}
+.or{display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.025)}
+.os{width:46px;height:19px;background:#fff;border-radius:2px;flex-shrink:0}
+.tr{display:flex;align-items:baseline;gap:14px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.tm{display:flex;gap:11px;font-size:7.5px;color:var(--txt3);flex-wrap:wrap}
+.mbw{width:140px;height:15px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:2px;overflow:hidden;cursor:pointer;flex-shrink:0}
+.mb{height:100%;background:rgba(61,142,240,.55);width:0}
+pre.tree{font-size:8.5px;line-height:1.85;color:var(--txt3);background:rgba(255,255,255,.015);border:1px solid var(--bdr);border-radius:3px;padding:11px 14px;overflow-x:auto;white-space:pre}
+pre.tree .h{color:var(--txt)}pre.tree .a{color:var(--acc)}pre.tree .g{color:var(--adc)}pre.tree .w{color:var(--warn)}
+.anat{width:340px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.015);position:relative;margin:7px 0 16px;border-radius:4px;overflow:hidden}
+.an-h{height:30px;background:rgba(255,255,255,.035);border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;padding:0 9px;font-size:7.5px;color:var(--txt3)}
+.an-i{height:30px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;padding:0 9px;font-size:7px;color:var(--txt3)}
+.an-sb{position:absolute;top:30px;right:0;bottom:0;width:76px;border-left:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.01);display:flex;align-items:center;justify-content:center;font-size:6px;color:var(--txt3);text-align:center;flex-direction:column;gap:2px}
+.leg{display:flex;gap:12px;flex-wrap:wrap;padding:6px 9px;background:rgba(255,255,255,.015);border:1px solid var(--bdr);border-radius:3px;margin-top:8px}
+.li{display:flex;align-items:center;gap:5px;font-size:7.5px;color:var(--txt3)}
+.lsw{width:14px;height:5px;border-radius:1px;flex-shrink:0}
+</style></head>
+<body>
+<div class="app">
+<div class="sb">
+  <div class="sb-h"><div class="sb-t">Live Variables</div><div class="sb-s">Drag — all derived values cascade</div></div>
+  <div class="sb-b">
+    <div class="vg">
+      <div class="vg-h">Display Zones</div>
+      <div class="vr"><div class="vr-t"><span class="vr-l">No-Go Border</span><span class="vr-v" id="vn">6mm/18px</span></div><input type="range" id="rn" min="3" max="20" step="1" value="6" oninput="sv('n',this.value)"><div class="vr-s">All 4 edges — no interaction, no content</div></div>
+      <div class="vr"><div class="vr-t"><span class="vr-l">Bar Height</span><span class="vr-v" id="vb">12mm/36px</span></div><input type="range" id="rb" min="8" max="22" step="1" value="12" oninput="sv('b',this.value)"><div class="vr-s">Top Menu Bar + Bottom Toolbar</div></div>
+      <div class="vr"><div class="vr-t"><span class="vr-l">Section Padding</span><span class="vr-v" id="vp">4mm/12px</span></div><input type="range" id="rp" min="2" max="12" step="1" value="4" oninput="sv('p',this.value)"><div class="vr-s">Inner side padding per section</div></div>
+    </div>
+    <div class="vg">
+      <div class="vg-h">Grid System</div>
+      <div class="vr"><div class="vr-t"><span class="vr-l">Columns / Section</span><span class="vr-v" id="vc">12</span></div><input type="range" id="rc" min="4" max="16" step="2" value="12" oninput="sv('c',this.value)"><div class="vr-s">Column grid — all 3 sections</div></div>
+      <div class="vr"><div class="vr-t"><span class="vr-l">Base Spacing</span><span class="vr-v" id="vs">4mm/12px</span></div><input type="range" id="rs" min="2" max="8" step="1" value="4" oninput="sv('s',this.value)"><div class="vr-s">All spacing = multiples of this</div></div>
+    </div>
+    <div class="vg">
+      <div class="vg-h">Touch Targets</div>
+      <div class="vr"><div class="vr-t"><span class="vr-l">Min Touch</span><span class="vr-v" id="vtm">10mm/30px</span></div><input type="range" id="rtm" min="7" max="15" step="1" value="10" oninput="sv('tm',this.value)"><div class="vr-s">Absolute floor — never below</div></div>
+      <div class="vr"><div class="vr-t"><span class="vr-l">Driver Touch</span><span class="vr-v" id="vtd">24mm/72px</span></div><input type="range" id="rtd" min="15" max="35" step="1" value="24" oninput="sv('td',this.value)"><div class="vr-s">Driver primary action buttons</div></div>
+    </div>
+    <div class="vg" style="margin-top:11px"><div class="vg-h">Derived (auto)</div>
+      <div class="dbox">Content H: <span id="dch">428px/142mm</span><br>Content top Y: <span id="dct">54px/18mm</span><br>ADAS line X: <span id="dax">658px/218mm</span><br>Col width: <span id="dcw">96px/32mm</span><br>Gutter: <span id="dgu">6px/2mm</span><br>Sec usable W: <span id="duw">1218px</span></div>
+    </div>
+    <div class="rbox"><b>Relationships:</b><br>Bar&#x2191; &#x2192; Content H&#x2193; &#x2192; Panel heights shrink<br>NGO&#x2191; &#x2192; Content H&#x2193; + ADAS X shifts<br>Cols&#x2191; &#x2192; Col W&#x2193; + Gutter&#x2193;<br>Sec Pad&#x2191; &#x2192; usable W&#x2193; &#x2192; col W&#x2193;<br>Base Sp&#x2191; &#x2192; all sp_xs/s/m/l/xl&#x2191;<br>Min Touch &#x2192; button floors change</div>
+    <button class="rbtn" onclick="rst()">&#x21BA; Reset defaults</button>
+  </div>
+</div>
+<div class="main">
+  <nav>
+    <button class="tb on" onclick="sw('ov',this)">Overview</button>
+    <button class="tb" onclick="sw('gr',this)">Grid Types</button>
+    <button class="tb" onclick="sw('co',this)">Components</button>
+    <button class="tb" onclick="sw('ty',this)">Typography</button>
+    <button class="tb" onclick="sw('sp',this)">Spacing</button>
+    <button class="tb" onclick="sw('mo',this)">Motion</button>
+    <button class="tb" onclick="sw('hi',this)">Hierarchy</button>
+    <div class="zr">Zoom&nbsp;<input type="range" id="rz" min="20" max="65" step="1" value="38" oninput="sz(this.value)"><span id="zv">38%</span></div>
+  </nav>
+  <div class="panels">
+
+  <!-- OVERVIEW -->
+  <div id="ov" class="pn on">
+    <div class="sh" style="margin-top:0">Full Dashboard 3840x536px / 1270x179mm — hover elements for specs</div>
+    <div class="pw"><div class="dash" id="dash"></div></div>
+    <div class="leg">
+      <div class="li"><div class="lsw" style="background:rgba(220,50,30,.2);border:1px dashed rgba(220,50,30,.55)"></div>No-Go</div>
+      <div class="li"><div class="lsw" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)"></div>Bars</div>
+      <div class="li"><div class="lsw" style="background:rgba(0,232,122,.6)"></div>ADAS line</div>
+      <div class="li"><div class="lsw" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09)"></div>Columns</div>
+      <div class="li"><div class="lsw" style="background:rgba(240,90,40,.08);border:1px solid rgba(240,90,40,.28)"></div>P1 Safety</div>
+      <div class="li"><div class="lsw" style="background:rgba(61,142,240,.08);border:1px solid rgba(61,142,240,.3)"></div>Panel (hover)</div>
+      <div class="li"><div class="lsw" style="background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:4px 4px"></div>Fine Grid 1mm</div>
+    </div>
+    <div class="sh">Quick Reference — updates live with sliders</div>
+    <table class="t"><thead><tr><th>Property</th><th>Pixels</th><th>Millimeters</th><th>Note</th></tr></thead><tbody>
+      <tr><td>Display</td><td class="m">3840x536px</td><td class="m">1270x179mm</td><td class="d">3.024px/mm H, 2.994px/mm V</td></tr>
+      <tr><td>Base unit</td><td class="m">3px</td><td class="m">1mm</td><td class="d">All values snap to 3px</td></tr>
+      <tr><td>Section width x3</td><td class="m">1280px</td><td class="m">423mm</td><td class="d">3840 / 3</td></tr>
+      <tr><td>No-Go Border</td><td class="m" id="tn">18px</td><td class="m" id="tnm">6mm</td><td class="d">All 4 edges — no interaction</td></tr>
+      <tr><td>Bar Height (each)</td><td class="m" id="tb2">36px</td><td class="m" id="tbm">12mm</td><td class="d">Top + Bottom bars</td></tr>
+      <tr><td>Content Area H</td><td class="m" id="tch">428px</td><td class="m" id="tchm">142mm</td><td class="d">536 - 2(ngo) - 2(bar)</td></tr>
+      <tr><td>Content top Y</td><td class="m" id="tct">54px</td><td class="m" id="tctm">18mm</td><td class="d">ngo + bar</td></tr>
+      <tr><td>Sec inner pad</td><td class="m" id="tsp">12px/side</td><td class="m" id="tspm">4mm</td><td class="d">Both sides per section</td></tr>
+      <tr><td>ADAS Line X</td><td class="m" id="tax">658px</td><td class="m" id="taxm">218mm</td><td class="d">Driver section center</td></tr>
+      <tr><td>Column Width</td><td class="m" id="tcw">96px</td><td class="m" id="tcwm">32mm</td><td class="d">Per column</td></tr>
+      <tr><td>Gutter</td><td class="m" id="tgu">6px</td><td class="m" id="tgum">2mm</td><td class="d">Between columns</td></tr>
+    </tbody></table>
+  </div>
+
+  <!-- GRID TYPES -->
+  <div id="gr" class="pn">
+    <div class="sh" style="margin-top:0">All Layout Grid Types</div>
+    <div class="gtbar">
+      <button class="gtb on" onclick="sg('c12',this)">12-Col</button>
+      <button class="gtb" onclick="sg('c8',this)">8-Col</button>
+      <button class="gtb" onclick="sg('c4',this)">4-Col</button>
+      <button class="gtb" onclick="sg('bl',this)">Baseline</button>
+      <button class="gtb" onclick="sg('mo',this)">Modular</button>
+      <button class="gtb" onclick="sg('go',this)">Golden Ratio</button>
+      <button class="gtb" onclick="sg('fg',this)">Fine Grain</button>
+      <button class="gtb" onclick="sg('se',this)">Sections</button>
+    </div>
+    <div class="gdw"><div class="gd" id="gd" style="width:100%"></div></div>
+    <div id="gdesc" style="font-size:9px;color:var(--txt3);line-height:1.8;margin-bottom:12px"></div>
+    <div class="two">
+      <div>
+        <div class="sh" style="margin-top:0">12-Col Primary Grid</div>
+        <table class="t"><thead><tr><th>Property</th><th>px</th><th>mm</th></tr></thead><tbody>
+          <tr><td>Columns/section</td><td class="m">12</td><td class="d">-</td></tr>
+          <tr><td>Column width</td><td class="m" id="gcw">96px</td><td class="m" id="gcwm">32mm</td></tr>
+          <tr><td>Gutter</td><td class="m" id="ggu">6px</td><td class="m">2mm</td></tr>
+          <tr><td>Sec inner pad</td><td class="m" id="gsp">12px</td><td class="m">4mm</td></tr>
+          <tr><td>Usable width</td><td class="m" id="guw">1218px</td><td class="m">403mm</td></tr>
+        </tbody></table>
+        <div class="sh">Column Span Reference</div>
+        <table class="t"><thead><tr><th>Span</th><th>px</th><th>mm</th><th>Use</th></tr></thead><tbody id="stbl"></tbody></table>
+      </div>
+      <div>
+        <div class="sh" style="margin-top:0">Row Grid</div>
+        <table class="t"><thead><tr><th>Row</th><th>px</th><th>mm</th><th>Use</th></tr></thead><tbody>
+          <tr><td>Micro/tag</td><td class="m">12px</td><td class="m">4mm</td><td class="d">Labels only</td></tr>
+          <tr><td>Bar/header</td><td class="m" id="gbr">36px</td><td class="m">12mm</td><td class="d">Bars, headers</td></tr>
+          <tr><td>Touch min</td><td class="m" id="gtm">30px</td><td class="m">10mm</td><td class="d">Absolute floor</td></tr>
+          <tr><td>Control row</td><td class="m">60px</td><td class="m">20mm</td><td class="d">Button rows</td></tr>
+          <tr><td>Widget row</td><td class="m">90px</td><td class="m">30mm</td><td class="d">Single widget</td></tr>
+          <tr><td>Half content</td><td class="m" id="ghc">214px</td><td class="m">71mm</td><td class="d">Half-height</td></tr>
+          <tr><td>Full content</td><td class="m" id="gfc">428px</td><td class="m">142mm</td><td class="d">Full height</td></tr>
+        </tbody></table>
+        <div class="sh">Baseline Intervals</div>
+        <table class="t"><thead><tr><th>Level</th><th>px</th><th>mm</th><th>For</th></tr></thead><tbody>
+          <tr><td>Fine grain</td><td class="m">3px</td><td class="m">1mm</td><td class="d">All values</td></tr>
+          <tr><td>Type baseline</td><td class="m">6px</td><td class="m">2mm</td><td class="d">Text align</td></tr>
+          <tr><td>Component snap</td><td class="m">12px</td><td class="m">4mm</td><td class="d">Elements</td></tr>
+          <tr><td>Structural row</td><td class="m">36px</td><td class="m">12mm</td><td class="d">Bars, headers</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPONENTS -->
+  <div id="co" class="pn">
+    <div class="sh" style="margin-top:0">Button Sizes</div>
+    <div class="cr"><div class="cb" style="width:30px;height:30px" data-tip="30x30px | 10x10mm&#10;Absolute minimum touch target&#10;Icon only. No label.">&#x2299;</div><div class="cl">Icon Btn Min <span class="bdg bw">floor</span></div><div class="cs">30x30px / 10x10mm</div></div>
+    <div class="cr"><div class="cb" style="width:45px;height:45px" data-tip="45x45px | 15x15mm&#10;Comfortable - passenger safe">&#x2299;</div><div class="cl">Icon Btn Comfortable <span class="bdg ba">passenger</span></div><div class="cs">45x45px / 15x15mm</div></div>
+    <div class="cr"><div class="cb" style="width:60px;height:60px" data-tip="60x60px | 20x20mm&#10;Driving safe - common zone">&#x2299;</div><div class="cl">Icon Btn Driving Safe <span class="bdg bg">driving</span></div><div class="cs">60x60px / 20x20mm</div></div>
+    <div class="cr"><div class="cb" style="width:72px;height:72px" data-tip="72x72px | 24x24mm&#10;Driver primary action">&#x2299;</div><div class="cl">Icon Btn Driver Primary <span class="bdg bg">driver</span></div><div class="cs">72x72px / 24x24mm</div></div>
+    <div class="cr"><div class="cb" style="width:90px;height:90px" data-tip="90x90px | 30x30mm&#10;Emergency/critical only">!</div><div class="cl">Icon Btn Emergency <span class="bdg bw">critical only</span></div><div class="cs">90x90px / 30x30mm</div></div>
+    <div class="sh">Text Buttons</div>
+    <div class="cr"><div class="cb" style="width:120px;height:45px" data-tip="120x45px | 40x15mm&#10;Small - passenger">Label</div><div class="cl">Text Btn Small <span class="bdg ba">passenger</span></div><div class="cs">120x45px / 40x15mm</div></div>
+    <div class="cr"><div class="cb" style="width:180px;height:60px" data-tip="180x60px | 60x20mm&#10;Standard - driving safe">Label</div><div class="cl">Text Btn Standard <span class="bdg bg">driving</span></div><div class="cs">180x60px / 60x20mm</div></div>
+    <div class="cr"><div class="cb" style="width:240px;height:72px" data-tip="240x72px | 79x24mm&#10;Driver CTA">CONFIRM</div><div class="cl">Text Btn Driver CTA <span class="bdg bg">driver</span></div><div class="cs">240x72px / 79x24mm</div></div>
+    <div class="sh">Panel Types</div>
+    <div class="cr"><div class="cb" style="width:96px;height:96px;font-size:6px" data-tip="96x96px | 32x32mm&#10;1col x 1row - micro panel">1x1</div><div class="cl">Micro Panel 1col x 1row</div><div class="cs">96x96px / 32x32mm</div></div>
+    <div class="cr"><div class="cb" style="width:198px;height:96px;font-size:6px" data-tip="198x96px | 66x32mm&#10;2col x 1row">2 col</div><div class="cl">Small Panel 2col x 1row</div><div class="cs">198x96px / 66x32mm</div></div>
+    <div class="cr"><div class="cb" style="width:300px;height:180px;font-size:6px" data-tip="300x200px | 99x66mm&#10;3col narrow">3 col</div><div class="cl">Narrow Panel 3col</div><div class="cs">300x200px / 99x66mm</div></div>
+    <div class="cr"><div class="cb" style="width:402px;height:180px;font-size:6px" data-tip="402x214px | 133x71mm&#10;4col half H">4col 1/2H</div><div class="cl">Mid Panel 4col x 1/2H</div><div class="cs">402x214px / 133x71mm</div></div>
+    <div class="cr"><div class="cb" style="width:606px;height:180px;font-size:6px" data-tip="606x214px | 200x71mm&#10;6col half H - half section">6col 1/2H</div><div class="cl">Half-Section 6col x 1/2H</div><div class="cs">606x214px / 200x71mm</div></div>
+    <div class="cr"><div class="cb" style="width:100%;height:68px;font-size:6px" data-tip="1218x428px | 403x142mm&#10;12col full H - full section">FULL SECTION - 12col x full H - 1218x428px / 403x142mm</div><div class="cl">Full Section</div><div class="cs">1218x428px</div></div>
+    <div class="sh">Sub-Module Anatomy</div>
+    <div class="anat">
+      <div class="an-h">Panel Header - 36px/12mm - H:12px V:6px</div>
+      <div style="margin-right:76px">
+        <div class="an-i">List Item - 36px/12mm - H:12px V:6px</div>
+        <div class="an-i" style="border-top:1px solid rgba(255,255,255,.06)">List Item - separator 1px at 8% opacity</div>
+        <div class="an-i">List Item - icon 24px + gap 6px + body 14px</div>
+        <div style="padding:7px 9px 0;display:flex;gap:5px">
+          <div style="flex:1;height:30px;border:1px solid rgba(255,255,255,.08);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:6.5px;color:var(--txt3)">Btn 60px</div>
+          <div style="flex:1;height:30px;border:1px solid rgba(255,255,255,.08);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:6.5px;color:var(--txt3)">Btn 60px</div>
+        </div>
+      </div>
+      <div class="an-sb">Sidebar<br>96px<br>32mm<br>1 col</div>
+    </div>
+    <div class="sh">Opacity</div>
+    <div class="or"><div class="os" style="opacity:1"></div><div style="min-width:90px;font-size:9px"><span class="m">100%</span> Primary</div><div class="d">Active state, focused element, current value</div></div>
+    <div class="or"><div class="os" style="opacity:.7"></div><div style="min-width:90px;font-size:9px"><span class="m">70%</span> Secondary</div><div class="d">Labels, supporting info, non-focused</div></div>
+    <div class="or"><div class="os" style="opacity:.4"></div><div style="min-width:90px;font-size:9px"><span class="m">40%</span> Tertiary</div><div class="d">Hints, metadata, de-opacified body</div></div>
+    <div class="or"><div class="os" style="opacity:.2"></div><div style="min-width:90px;font-size:9px"><span class="m">20%</span> Disabled</div><div class="d">Unavailable, locked</div></div>
+    <div class="or"><div class="os" style="opacity:.07;border:1px solid rgba(255,255,255,.18)"></div><div style="min-width:90px;font-size:9px"><span class="m">5-8%</span> Panel BG</div><div class="d">Container fill on dark base</div></div>
+    <div class="or"><div class="os" style="background:#000;opacity:.6;border:1px solid rgba(255,255,255,.12)"></div><div style="min-width:90px;font-size:9px"><span class="m">60%</span> Scrim</div><div class="d">Modal overlay, focus blur</div></div>
+    <div class="sh">Radius</div>
+    <table class="t"><thead><tr><th>Element</th><th>px</th><th>mm</th><th>Character</th></tr></thead><tbody>
+      <tr><td>All buttons</td><td class="m">3px</td><td class="m">1mm</td><td class="d">Sharp - automotive</td></tr>
+      <tr><td>Cards / panels</td><td class="m">6px</td><td class="m">2mm</td><td class="d">Slight softness</td></tr>
+      <tr><td>Large panels (4col+)</td><td class="m">9px</td><td class="m">3mm</td><td class="d">Spatial weight</td></tr>
+      <tr><td>Full section panels</td><td class="m">0px</td><td class="m">0</td><td class="d">Flush to bounds</td></tr>
+      <tr><td>Tags / badges</td><td class="m">3px</td><td class="m">1mm</td><td class="d">Same as button</td></tr>
+      <tr><td>Progress bars</td><td class="m">3px</td><td class="m">1mm</td><td class="d">Slight capsule</td></tr>
+    </tbody></table>
+  </div>
+
+  <!-- TYPOGRAPHY -->
+  <div id="ty" class="pn">
+    <div class="sh" style="margin-top:0">Type Scale - 1 family, 2 weights (400+500), size = hierarchy</div>
+    <div class="tr"><div style="font-size:28px;font-weight:500;letter-spacing:-.02em;line-height:1.1" data-tip="H1 - 28px/9.3mm&#10;W:500 -0.02em LH:1.1&#10;Speed, primary metric">H1 / 28px</div><div class="tm"><span class="m">28px</span><span class="d">9.3mm</span><span class="d">W:500</span><span class="d">-0.02em LH1.1</span><span class="d">Primary metric, speed</span></div></div>
+    <div class="tr"><div style="font-size:22px;font-weight:500;letter-spacing:-.01em;line-height:1.2" data-tip="H2 - 22px/7.3mm&#10;W:500 -0.01em LH:1.2&#10;Panel title, sub-value">H2 / 22px</div><div class="tm"><span class="m">22px</span><span class="d">7.3mm</span><span class="d">W:500</span><span class="d">-0.01em LH1.2</span><span class="d">Panel title, sub-value</span></div></div>
+    <div class="tr"><div style="font-size:18px;font-weight:400;line-height:1.3" data-tip="H3 - 18px/6mm&#10;W:400 0em LH:1.3&#10;Widget title - glance floor">H3 / 18px - glance floor</div><div class="tm"><span class="m">18px</span><span class="d">6mm</span><span class="d">W:400</span><span class="d">0em LH1.3</span><span class="d">Widget title, glance floor</span></div></div>
+    <div class="tr"><div style="font-size:14px;font-weight:400;letter-spacing:.01em;line-height:1.4" data-tip="Body - 14px/4.6mm&#10;W:400 0.01em LH:1.4&#10;List items, values - driver min">Body / 14px - list items, values, descriptions</div><div class="tm"><span class="m">14px</span><span class="d">4.6mm</span><span class="d">W:400</span><span class="d">0.01em LH1.4</span><span class="d">Body - driver min</span></div></div>
+    <div class="tr"><div style="font-size:14px;font-weight:400;opacity:.38;letter-spacing:.01em" data-tip="De-opacified Body&#10;Same 14px at 38%&#10;Reduce opacity, never size">De-opacified / 14px at 38% - supplementary context</div><div class="tm"><span class="m">14px @38%</span><span class="d">Opacity only</span><span class="d">Supplementary</span></div></div>
+    <div class="tr"><div style="font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;line-height:1" data-tip="TAG - 11px/3.6mm&#10;W:500 CAPS 0.07em&#10;Status, mode, badge">TAG LABEL / 11px</div><div class="tm"><span class="m">11px</span><span class="d">3.6mm</span><span class="d">W:500 CAPS</span><span class="d">0.07em</span><span class="d">Status, mode, badge</span></div></div>
+    <div class="tr"><div style="font-size:9px;font-weight:400;letter-spacing:.08em;line-height:1.3" data-tip="MICRO - 9px/3mm&#10;W:400 0.08em&#10;Units, timestamps only&#10;NEVER below. Never driver zone.">Micro / 9px - units, timestamps - ABSOLUTE MINIMUM</div><div class="tm"><span class="m">9px</span><span class="d">3mm</span><span class="d">W:400</span><span class="d">0.08em</span><span class="w">NEVER below</span></div></div>
+    <div class="sh">Rules</div>
+    <table class="t"><thead><tr><th>Rule</th><th>Value</th></tr></thead><tbody>
+      <tr><td>Font families max</td><td class="m">1</td></tr>
+      <tr><td>Weights</td><td class="m">2 - Regular 400, Medium 500</td></tr>
+      <tr><td>Absolute minimum</td><td class="m">9px / 3mm</td></tr>
+      <tr><td>Driver zone minimum</td><td class="m">14px / 4.6mm</td></tr>
+      <tr><td>Glance-readable</td><td class="m">18px / 6mm</td></tr>
+      <tr><td>Numerals</td><td class="m">Tabular lining - fixed-width digits</td></tr>
+      <tr><td>Uppercase tracking</td><td class="m">0.06em - 0.14em</td></tr>
+      <tr><td>Max line length</td><td class="m">~40 chars / panel</td></tr>
+    </tbody></table>
+  </div>
+
+  <!-- SPACING -->
+  <div id="sp" class="pn">
+    <div class="sh" style="margin-top:0">Spacing System - all multiples of Base Spacing (sidebar slider)</div>
+    <div id="sprows"></div>
+    <div class="sh">Context Rules</div>
+    <table class="t"><thead><tr><th>Context</th><th>Min</th><th>Max</th><th>Recommended</th></tr></thead><tbody>
+      <tr><td>Interactive gap</td><td class="m">6px/2mm</td><td class="m">18px/6mm</td><td class="m">12px/4mm</td></tr>
+      <tr><td>Panel inner pad</td><td class="m">12px/4mm</td><td class="m">24px/8mm</td><td class="m">12px/4mm</td></tr>
+      <tr><td>Between panels</td><td class="m">6px/2mm</td><td class="m">12px/4mm</td><td class="m">6px/2mm</td></tr>
+      <tr><td>Section separation</td><td class="m">12px/4mm</td><td class="m">24px/8mm</td><td class="m">12px/4mm</td></tr>
+      <tr><td>Icon to text</td><td class="m">6px/2mm</td><td class="m">12px/4mm</td><td class="m">6px/2mm</td></tr>
+      <tr><td>List item H pad</td><td class="m">12px/4mm</td><td class="m">18px/6mm</td><td class="m">12px/4mm</td></tr>
+      <tr><td>List item V pad</td><td class="m">6px/2mm</td><td class="m">12px/4mm</td><td class="m">6px/2mm</td></tr>
+      <tr><td>Button H pad</td><td class="m">12px/4mm</td><td class="m">24px/8mm</td><td class="m">18px/6mm</td></tr>
+      <tr><td>Button V pad</td><td class="m">6px/2mm</td><td class="m">12px/4mm</td><td class="m">9px/3mm</td></tr>
+    </tbody></table>
+  </div>
+
+  <!-- MOTION -->
+  <div id="mo" class="pn">
+    <div class="sh" style="margin-top:0">Motion - Timing is meaning. Click bars to preview.</div>
+    <table class="t"><thead><tr><th>Tier</th><th>Duration</th><th>Easing</th><th>Meaning</th></tr></thead><tbody>
+      <tr><td><span class="bdg bg">INSTANT</span></td><td class="m">0ms</td><td class="d">-</td><td class="d">Binary state, live data - zero lag</td></tr>
+      <tr><td><span class="bdg ba">MICRO</span></td><td class="m">100ms</td><td class="m">ease-out</td><td class="d">Felt response - hover, press, badge</td></tr>
+      <tr><td><span class="bdg ba">INTERACTION</span></td><td class="m">200ms</td><td class="m">ease-in-out</td><td class="d">Confirmed action - tab, panel, confirm</td></tr>
+      <tr><td><span class="bdg bw">TRANSITION</span></td><td class="m">500ms</td><td class="m">cubic-bezier(0.4,0,0.2,1)</td><td class="d">Weight - mode change, view switch</td></tr>
+      <tr><td><span class="bdg ba">LOOP</span></td><td class="m">inf</td><td class="m">linear</td><td class="d">Continuous - regen, loading, ambient</td></tr>
+    </tbody></table>
+    <div class="sh">Live Demos</div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:12px"><div style="min-width:165px;font-size:9px">Micro - 100ms ease-out</div><div class="mbw" onclick="ab(this,100,'ease-out')"><div class="mb"></div></div><div class="d" style="font-size:8px">Press, hover, badge</div></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="min-width:165px;font-size:9px">Interaction - 200ms</div><div class="mbw" onclick="ab(this,200,'ease-in-out')"><div class="mb"></div></div><div class="d" style="font-size:8px">Tab, panel, confirm</div></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="min-width:165px;font-size:9px">Transition - 500ms cubic</div><div class="mbw" onclick="ab(this,500,'cubic-bezier(0.4,0,0.2,1)')"><div class="mb"></div></div><div class="d" style="font-size:8px">Mode change, view swap</div></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="min-width:165px;font-size:9px">Loop - click to toggle</div><div class="mbw" id="lw" onclick="tl()"><div class="mb" id="lb"></div></div><div class="d" style="font-size:8px">Regen, loading, ambient</div></div>
+    </div>
+    <div class="sh">Use-Case Reference</div>
+    <table class="t"><thead><tr><th>Use Case</th><th>Duration</th><th>Properties</th><th>Detail</th></tr></thead><tbody>
+      <tr><td>Touch press</td><td class="m">100ms</td><td class="m">opacity, scale</td><td class="d">scale 1 to 0.97, opacity -10%</td></tr>
+      <tr><td>Hover</td><td class="m">100ms</td><td class="m">background, border</td><td class="d">+4% bg opacity</td></tr>
+      <tr><td>Tab/panel switch</td><td class="m">200ms</td><td class="m">opacity, translateY</td><td class="d">fade + slide 8px</td></tr>
+      <tr><td>Drive mode change</td><td class="m">500ms</td><td class="m">color, opacity</td><td class="d">full theme crossfade</td></tr>
+      <tr><td>View switch</td><td class="m">500ms</td><td class="m">transform, opacity</td><td class="d">slide + fade</td></tr>
+      <tr><td>Regen meter</td><td class="m">inf data-driven</td><td class="m">height</td><td class="d">real-time linear, no easing</td></tr>
+      <tr><td>ADAS alert pulse</td><td class="m">300ms x2</td><td class="m">opacity</td><td class="d">2x pulse then hold 100%</td></tr>
+      <tr><td>Live speed/data</td><td class="m w">0ms INSTANT</td><td class="m">content only</td><td class="d">NEVER tween live numerics</td></tr>
+    </tbody></table>
+  </div>
+
+  <!-- HIERARCHY -->
+  <div id="hi" class="pn">
+    <div class="two">
+      <div>
+        <div class="sh" style="margin-top:0">Z-Index Layers</div>
+        <table class="t"><thead><tr><th>Level</th><th>Layer</th><th>Z</th></tr></thead><tbody>
+          <tr><td class="m">L0</td><td>Base background</td><td class="m">0</td></tr>
+          <tr><td class="m">L1</td><td>Fine grid overlay</td><td class="m">1</td></tr>
+          <tr><td class="m">L2</td><td>Section containers</td><td class="m">2</td></tr>
+          <tr><td class="m">L3-4</td><td>Content panels</td><td class="m">3-5</td></tr>
+          <tr><td class="m">L5</td><td>Top + Bottom Bars</td><td class="m">10</td></tr>
+          <tr><td class="m">L6</td><td>ADAS center line</td><td class="m">20</td></tr>
+          <tr><td class="m">L7</td><td>Toast notifications</td><td class="m">30</td></tr>
+          <tr><td class="m">L8</td><td>No-go guard layer</td><td class="m">40</td></tr>
+          <tr><td class="m">L9</td><td>ADAS critical alert</td><td class="m">99</td></tr>
+          <tr><td class="m w">L10</td><td>Emergency fullscreen</td><td class="m w">999</td></tr>
+        </tbody></table>
+        <div class="sh">Information Priority</div>
+        <table class="t"><thead><tr><th>P</th><th>Content</th><th>Treatment</th></tr></thead><tbody>
+          <tr><td class="w m">P1</td><td>Safety, ADAS</td><td class="d">Signal color, z:99+</td></tr>
+          <tr><td class="g m">P2</td><td>Speed, Nav, Critical</td><td class="d">H1/H2, 100%, driver</td></tr>
+          <tr><td class="m">P3</td><td>Media, Climate, Mode</td><td class="d">H2/H3, 100%</td></tr>
+          <tr><td class="m">P4</td><td>Secondary controls</td><td class="d">Body, 70%</td></tr>
+          <tr><td class="d">P5</td><td>Labels, tags, units</td><td class="d">Tag/body, 40%</td></tr>
+          <tr><td class="d">P6</td><td>Borders, grid lines</td><td class="d">White 5-12%</td></tr>
+        </tbody></table>
+      </div>
+      <div>
+        <div class="sh" style="margin-top:0">Full Component Tree</div>
+<pre class="tree">
+<span class="h">DISPLAY</span>  3840x536 / 1270x179mm
+|
++-- <span class="w">No-Go Zones</span> [z:40] 18px/6mm 4 edges
++-- <span class="h">Top Bar</span> [z:10] 36px/12mm
+|   +-- LEFT  time, status icons
+|   +-- CTR   drive mode tag
+|   +-- RIGHT WiFi,BT,LTE,GPS,battery
++-- <span class="h">Bottom Bar</span> [z:10] 36px/12mm
+|   +-- LEFT  Home,Nav,Back [60px]
+|   +-- CTR   context shortcuts
+|   +-- RIGHT User,Settings [60px]
+|
++-- <span class="h">DRIVER SECTION</span> 1280x428px
+|   |   min touch: 72px/24mm
+|   +-- <span class="w">ADAS Cluster</span> [P1] 3col full-H
+|   |   +-- limits,lane,FWC,ACC
+|   +-- <span class="a">Main Cluster</span> [P2] 7col top-58%
+|   |   +-- H1 28px: speed
+|   |   +-- H3 18px: unit,gear
+|   |   +-- Body 14px: odo,trip
+|   +-- <span class="a">Drive Mode</span> [P3] 3.5col bot-42%
+|   |   +-- 4x btn 72x36px
+|   +-- <span class="a">Energy Panel</span> [P3] 3.5col bot-42%
+|   |   +-- H2 22px: range
+|   |   +-- battery bar 6px
+|   +-- <span class="a">Nav Mini</span> [P2] 3col full-H
+|       +-- map thumbnail
+|       +-- H3+body: turn,street
+|
++-- <span class="g">ADAS LINE</span> [z:20] x:658px/218mm
+|
++-- <span class="h">COMMON SECTION</span> 1280x428px
+|   |   min touch: 60px/20mm
+|   +-- <span class="a">Media Widget</span> [P3] 6col top-50%
+|   |   +-- art 48px, H3, body@70%
+|   |   +-- 3x icon btn 45px
+|   |   +-- progress bar 6px
+|   +-- <span class="a">Climate Widget</span> [P3] 6col top-50%
+|   |   +-- H2 temp L/R
+|   |   +-- fan,distrib,AC toggle
+|   +-- <span class="a">Quick Row</span> [P4] 4x1col bot-50%
+|   |   +-- 60x60px icon+tag+val
+|   +-- <span class="a">Secondary Widget</span> [P4] 6col bot-50%
+|
++-- <span class="h">PASSENGER SECTION</span> 1274x428px
+    |   min touch: 45px/15mm
+    +-- <span class="a">Full Content Panel</span> 12col full-H
+        +-- Header 36px (tabs, close 45px)
+        +-- Content 392px
+        |   video / map / browser / app
+        +-- Sidebar (opt) 96px/32mm
+            +-- items 36px rows
+                icon 24px + body 14px
+</pre>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+const PPM=3.024,DW=3840,DH=536,SW=1280;
+let S={n:6,b:12,p:4,c:12,s:4,tm:10,td:24,z:0.38};
+const D={...S};
+
+function sn(px){return Math.round(px/3)*3}
+function m2p(mm){return sn(mm*PPM)}
+function der(s){
+  const n=m2p(s.n),b=m2p(s.b),p=m2p(s.p);
+  const ch=DH-2*n-2*b,ct=n+b;
+  const ax=Math.round(n+SW/2);
+  const uw=SW-2*p;
+  const gu=Math.max(3,sn(uw/(s.c*7)));
+  const cw=sn((uw-(s.c-1)*gu)/s.c);
+  return{n,b,p,ch,ct,ax,uw,gu,cw};
+}
+
+function st(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
+
+function upd(){
+  const d=der(S);
+  st('vn',S.n+'mm/'+d.n+'px');st('vb',S.b+'mm/'+d.b+'px');st('vp',S.p+'mm/'+d.p+'px');
+  st('vc',S.c);st('vs',S.s+'mm/'+m2p(S.s)+'px');
+  st('vtm',S.tm+'mm/'+m2p(S.tm)+'px');st('vtd',S.td+'mm/'+m2p(S.td)+'px');
+  st('dch',d.ch+'px/'+Math.round(d.ch/PPM)+'mm');st('dct',d.ct+'px/'+Math.round(d.ct/PPM)+'mm');
+  st('dax',d.ax+'px/'+Math.round(d.ax/PPM)+'mm');st('dcw',d.cw+'px/'+Math.round(d.cw/PPM)+'mm');
+  st('dgu',d.gu+'px/'+Math.round(d.gu/PPM)+'mm');st('duw',d.uw+'px');
+  // spec table
+  st('tn',d.n+'px');st('tnm',S.n+'mm');st('tb2',d.b+'px');st('tbm',S.b+'mm');
+  st('tch',d.ch+'px');st('tchm',Math.round(d.ch/PPM)+'mm');
+  st('tct',d.ct+'px');st('tctm',Math.round(d.ct/PPM)+'mm');
+  st('tsp',d.p+'px/side');st('tspm',S.p+'mm');
+  st('tax',d.ax+'px');st('taxm',Math.round(d.ax/PPM)+'mm');
+  st('tcw',d.cw+'px');st('tcwm',Math.round(d.cw/PPM)+'mm');
+  st('tgu',d.gu+'px');st('tgum',Math.round(d.gu/PPM)+'mm');
+  // grid tab
+  st('gcw',d.cw+'px');st('gcwm',Math.round(d.cw/PPM)+'mm');
+  st('ggu',d.gu+'px');st('gsp',d.p+'px');st('guw',d.uw+'px');
+  st('gbr',d.b+'px');st('gtm',m2p(S.tm)+'px');
+  st('ghc',Math.round(d.ch/2)+'px');st('gfc',d.ch+'px');
+  bsp(d);bspr(d);bd(d);ugd(CG,d);
+}
+
+function bsp(d){
+  const tb=document.getElementById('stbl');if(!tb)return;
+  const sp=[1,2,3,4,6,8,12];
+  const us=['Icon btn container','Small widget','Narrow panel','Mid panel','Half section','Two-thirds','Full section'];
+  tb.innerHTML='';
+  sp.forEach((n,i)=>{const w=n*d.cw+(n-1)*d.gu;tb.innerHTML+=`<tr><td class="m">${n} col</td><td class="m">${w}px</td><td class="m">${Math.round(w/PPM)}mm</td><td class="d">${us[i]}</td></tr>`;});
+}
+
+function bspr(d){
+  const bsp=m2p(S.s);
+  const rows=[
+    ['XS',bsp/2,'Micro gap - icon-to-text, tag internal'],
+    ['S',bsp,'Tight - panel inner pad, header, list item'],
+    ['M',bsp*1.5,'Standard - outer pad, sibling gap'],
+    ['L',bsp*2.5,'Breathing - widget groups, sub-regions'],
+    ['XL',bsp*3.75,'Major - panel clusters, large separators'],
+    ['XXL',bsp*5,'Zone - architectural separation'],
+  ];
+  const w=document.getElementById('sprows');if(!w)return;
+  w.innerHTML='';
+  rows.forEach(([n,v,desc])=>{
+    const vw=Math.min(Math.round(v),140);
+    w.innerHTML+=`<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.025)">
+      <div style="min-width:32px;font-size:9px;color:var(--acc)">${n}</div>
+      <div style="width:${vw}px;height:18px;background:rgba(61,142,240,.17);border:1px solid rgba(61,142,240,.35);border-radius:1px;flex-shrink:0"></div>
+      <div style="font-size:9.5px;min-width:140px;color:var(--acc)">${Math.round(v)}px / ${Math.round(v/PPM)}mm</div>
+      <div style="font-size:8.5px;color:var(--txt3)">${desc}</div>
+    </div>`;
+  });
+}
+
+function bd(d){
+  const sc=S.z;
+  const W=Math.round(DW*sc),H=Math.round(DH*sc);
+  const s=v=>Math.round(v*sc);
+  const el=document.getElementById('dash');if(!el)return;
+  el.innerHTML='';el.style.width=W+'px';el.style.height=H+'px';
+  // fine grid
+  const fg=Math.max(2,s(3));
+  el.style.backgroundImage=`linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px)`;
+  el.style.backgroundSize=`${fg}px ${fg}px`;
+
+  const a=e=>el.appendChild(e);
+  const dv=(css,tip='',html='')=>{
+    const e=document.createElement('div');e.style.cssText=css;
+    if(tip)e.setAttribute('data-tip',tip);if(html)e.innerHTML=html;return a(e);
+  };
+  const n=d.n,b=d.b,ct=d.ct,ch=d.ch;
+
+  // no-go
+  const ng='rgba(220,50,30,.07)',nb='1px dashed rgba(220,50,30,.5)';
+  const ngt=pos=>`NO-GO ${pos.toUpperCase()}
+${n}px / ${S.n}mm
+No interaction. No content.`;
+  dv(`position:absolute;top:0;left:0;right:0;height:${s(n)}px;background:${ng};border-bottom:${nb};z-index:9;pointer-events:none`,ngt('top'));
+  dv(`position:absolute;bottom:0;left:0;right:0;height:${s(n)}px;background:${ng};border-top:${nb};z-index:9;pointer-events:none`,ngt('bottom'));
+  dv(`position:absolute;top:0;left:0;bottom:0;width:${s(n)}px;background:${ng};border-right:${nb};z-index:9;pointer-events:none`,ngt('left'));
+  dv(`position:absolute;top:0;right:0;bottom:0;width:${s(n)}px;background:${ng};border-left:${nb};z-index:9;pointer-events:none`,ngt('right'));
+
+  // section dividers
+  [1,2].forEach(i=>dv(`position:absolute;top:${s(n)}px;bottom:${s(n)}px;left:${s(n+SW*i)}px;width:1px;background:rgba(255,255,255,.14);z-index:8;pointer-events:none`));
+
+  // section labels
+  [['DRIVER',n],['COMMON',n+SW],['PASS.',n+SW*2]].forEach(([l,x])=>{
+    dv(`position:absolute;top:${s(ct)+3}px;left:${s(x+4)}px;font-size:${s(5.5)}px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.18);z-index:7;pointer-events:none`,'',l);
+  });
+
+  // column guides
+  for(let sec=0;sec<3;sec++){
+    const sx=n+sec*SW+d.p;
+    for(let c=1;c<S.c;c++){
+      const x=sx+c*(d.cw+d.gu)-d.gu/2;
+      const mid=c===Math.round(S.c/2);
+      dv(`position:absolute;top:${s(ct)}px;bottom:${s(n+b)}px;left:${s(x)}px;width:1px;background:rgba(255,255,255,${mid?'.12':'.06'});z-index:6;pointer-events:none`);
+    }
+  }
+
+  // bars
+  dv(`position:absolute;top:${s(n)}px;left:0;right:0;height:${s(b)}px;background:rgba(255,255,255,.042);border-top:1px solid rgba(255,255,255,.09);border-bottom:1px solid rgba(255,255,255,.05);z-index:5`,
+    `TOP BAR
+${b}px / ${S.b}mm
+Left: time, status
+Center: drive mode
+Right: WiFi,BT,LTE`,
+    `<div style="position:absolute;left:${s(n+5)}px;top:50%;transform:translateY(-50%);font-size:${s(5)}px;color:rgba(255,255,255,.3)">12:48</div>`+
+    `<div style="position:absolute;left:50%;transform:translate(-50%,-50%);top:50%;font-size:${s(4.5)}px;color:rgba(255,255,255,.22);letter-spacing:.1em;text-transform:uppercase">ECO</div>`+
+    `<div style="position:absolute;right:${s(n+5)}px;top:50%;transform:translateY(-50%);font-size:${s(5)}px;color:rgba(255,255,255,.28)">WiFi BT</div>`);
+
+  dv(`position:absolute;bottom:${s(n)}px;left:0;right:0;height:${s(b)}px;background:rgba(255,255,255,.042);border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.09);z-index:5`,
+    `BOTTOM BAR
+${b}px / ${S.b}mm
+Left: Home,Nav,Back
+Right: User,Settings`,
+    `<div style="position:absolute;left:${s(n+5)}px;top:50%;transform:translateY(-50%);font-size:${s(6)}px;color:rgba(255,255,255,.25)">&#x2302; &#x2316; &#x2190;</div>`+
+    `<div style="position:absolute;right:${s(n+5)}px;top:50%;transform:translateY(-50%);font-size:${s(6)}px;color:rgba(255,255,255,.25)">&#x2299; &#x2699;</div>`);
+
+  // ADAS line
+  dv(`position:absolute;top:0;bottom:0;left:${s(d.ax)}px;width:1px;background:var(--adc);opacity:.68;z-index:8`,
+    `ADAS CENTER LINE
+${d.ax}px / ${Math.round(d.ax/PPM)}mm
+Steering wheel axis
+NEVER obscure`,
+    `<div style="position:absolute;top:${s(ct)+2}px;left:2px;font-size:${s(5)}px;color:var(--adc);letter-spacing:.08em;white-space:nowrap">ADAS</div>`);
+
+  // panels helper
+  const pn=(l,t,w,h,lbl,tip,p1=false)=>{
+    const bc=p1?'rgba(240,90,40,.35)':'rgba(255,255,255,.11)';
+    const bg=p1?'rgba(240,90,40,.04)':'rgba(255,255,255,.025)';
+    const e=document.createElement('div');
+    e.style.cssText=`position:absolute;left:${s(l)}px;top:${s(t)}px;width:${s(w)}px;height:${s(h)}px;border:1px solid ${bc};background:${bg};z-index:5;display:flex;align-items:center;justify-content:center;font-size:${s(5.5)}px;color:rgba(255,255,255,.3);text-align:center;line-height:1.35;letter-spacing:.05em;text-transform:uppercase;cursor:help;transition:border-color 100ms,background 100ms,color 100ms`;
+    e.textContent=lbl;if(tip)e.setAttribute('data-tip',tip);
+    e.onmouseenter=()=>{e.style.borderColor='rgba(61,142,240,.7)';e.style.background='rgba(61,142,240,.08)';e.style.color='rgba(255,255,255,.75)';e.style.zIndex='50'};
+    e.onmouseleave=()=>{e.style.borderColor=bc;e.style.background=bg;e.style.color='rgba(255,255,255,.3)';e.style.zIndex='5'};
+    a(e);
+  };
+
+  const p=d.p,cw=d.cw,gu=d.gu;
+  const dL=n,cL=n+SW,pL=n+SW*2;
+  const c3=3*cw+2*gu,c7=7*cw+6*gu,c35=3.5*cw+2.5*gu;
+  pn(dL+p,ct,c3,ch,'ADAS',`ADAS CLUSTER P1
+${Math.round(c3)}x${ch}px
+3col full-H
+Speed limit, lane, FWC, ACC
+Priority: P1 SAFETY`,true);
+  pn(dL+p+c3+gu,ct,c7,ch*.58,`SPEED
+CLUSTER`,`MAIN CLUSTER P2
+${Math.round(c7)}x${Math.round(ch*.58)}px
+7col top-58%
+H1:speed H3:unit+gear Body:odo`);
+  pn(dL+p+c3+gu,ct+ch*.58+gu,c35,ch*.42-gu,`DRIVE
+MODE`,`DRIVE MODE P3
+4x buttons 72x36px
+Active:100% Inactive:40%`);
+  pn(dL+p+c3+gu+c35+gu,ct+ch*.58+gu,c7-c35-gu,ch*.42-gu,'ENERGY',`ENERGY P3
+Range H2 + battery 6px + regen`);
+  const c3r=SW-p-c3-gu-c7-gu;
+  pn(dL+p+c3+gu+c7+gu,ct,c3r,ch,'NAV',`NAV MINI P2
+3col full-H
+map + H3 turn + body street`);
+
+  const hH=Math.round(ch/2),hW=Math.round((SW-p*2-gu)/2);
+  pn(cL+p,ct,hW,hH,'MEDIA',`MEDIA P3
+${hW}x${hH}px
+6col top-50%
+art+H3+body@70%, 3x btn 45px`);
+  pn(cL+p+hW+gu,ct,hW,hH,'CLIMATE',`CLIMATE P3
+${hW}x${hH}px
+6col top-50%
+H2 temp, fan, AC 60x36`);
+  const qW=Math.round((hW-3*gu)/4);
+  ['SEAT','VOL','CAM','PHONE'].forEach((l,i)=>pn(cL+p+i*(qW+gu),ct+hH+gu,qW,ch-hH-gu,l,`QUICK P4
+icon+tag+val
+min:60x60px`));
+  pn(cL+p+hW+gu,ct+hH+gu,hW,ch-hH-gu,'DATA',`SECONDARY P4
+trip / charge / POI`);
+  pn(pL+p,ct,SW-p*2,ch,`PASSENGER
+FULL PANEL`,`FULL CONTENT P3
+${SW-p*2}x${ch}px
+12col full-H
+Video/Map/Browser/App
+Sidebar opt 96px, min:45px`);
+}
+
+// GRID DEMO
+let CG='c12';
+const GD={
+  c12:'12-column grid - primary layout. Column width changes with sidebar Columns and Section Padding sliders.',
+  c8:'8-column grid - alternate for wider panels. Simpler layout, larger columns.',
+  c4:'4-column grid - coarse grid for major content blocks. Large driver panels.',
+  bl:'Baseline grid - 3px (1mm) fine horizontal rows. All text and sizes snap here.',
+  mo:'Modular grid - column grid intersected with baseline rows. Both-axis snap.',
+  go:'Golden ratio (phi=1.618) - proportional section splits. Natural hierarchy.',
+  fg:'Fine grain - 3x3px = 1x1mm squares. All values must be multiples. No arbitrary numbers.',
+  se:'Section anatomy - three zones with bars, no-go, content area, ADAS line annotated.'
+};
+
+function sg(id,btn){
+  document.querySelectorAll('.gtb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');CG=id;
+  const d=der(S);ugd(id,d);
+  const e=document.getElementById('gdesc');if(e)e.textContent=GD[id];
+}
+
+function ugd(id,d){
+  const dm=document.getElementById('gd');if(!dm)return;
+  const W=dm.offsetWidth||900,H=dm.offsetHeight||95;
+  const sc=W/DW;const s=v=>Math.round(v*sc);
+  dm.innerHTML='';dm.style.backgroundImage='none';
+
+  const r=(x,y,w,h,bg,bd)=>{
+    const e=document.createElement('div');
+    e.style.cssText=`position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${bg};${bd?'border:1px solid '+bd+';':''}pointer-events:none`;
+    dm.appendChild(e);
+  };
+  const l=(x1,y1,x2,y2,c)=>{
+    const e=document.createElement('div');const iv=x1===x2;
+    e.style.cssText=`position:absolute;left:${Math.min(x1,x2)}px;top:${Math.min(y1,y2)}px;${iv?'width:1px;height:'+(y2-y1)+'px':'height:1px;width:'+(x2-x1)+'px'};background:${c};pointer-events:none`;
+    dm.appendChild(e);
+  };
+  const lb=(x,y,t,c='rgba(255,255,255,.25)')=>{
+    const e=document.createElement('div');
+    e.style.cssText=`position:absolute;left:${x}px;top:${y}px;font-size:6px;color:${c};white-space:nowrap;pointer-events:none`;
+    e.textContent=t;dm.appendChild(e);
+  };
+
+  const nn=s(d.n),b=s(d.b),ct=s(d.ct),ch=s(d.ch);
+
+  if(id==='se'){
+    r(0,0,W,H,'#0a0a0e','rgba(255,255,255,.05)');
+    r(0,0,W,nn,'rgba(220,50,30,.1)','');r(0,H-nn,W,nn,'rgba(220,50,30,.1)','');
+    r(0,nn,W,b,'rgba(255,255,255,.04)','rgba(255,255,255,.07)');
+    r(0,H-nn-b,W,b,'rgba(255,255,255,.04)','rgba(255,255,255,.07)');
+    [1,2].forEach(i=>l(s(d.n+SW*i),ct,s(d.n+SW*i),H-nn-b,'rgba(255,255,255,.2)'));
+    l(s(d.ax),0,s(d.ax),H,'#00e87a');
+    lb(s(d.n+2),ct+2,'DRIVER');lb(s(d.n+SW+2),ct+2,'COMMON');lb(s(d.n+SW*2+2),ct+2,'PASSENGER');
+    lb(s(d.ax)+2,4,'ADAS','#00e87a');lb(2,1,'NGO '+d.n+'px','rgba(220,50,30,.5)');lb(2,nn+2,'BAR '+d.b+'px','rgba(255,255,255,.3)');
+    return;
+  }
+  if(id==='fg'){
+    const u=Math.max(2,s(3));
+    dm.style.backgroundImage=`linear-gradient(rgba(61,142,240,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(61,142,240,.18) 1px,transparent 1px)`;
+    dm.style.backgroundSize=`${u}px ${u}px`;
+    lb(4,4,'3px (1mm) - all values snap to this unit','rgba(61,142,240,.5)');
+    [30,45,60,72,90].forEach((sz,i)=>{const sx=s(sz);const x=8+i*(sx+5);if(x+sx>W)return;r(x,(H-sx)/2,sx,sx,'rgba(61,142,240,.05)','rgba(61,142,240,.3)');lb(x,(H+sx)/2+1,sz+'px','rgba(61,142,240,.4)');});
+    return;
+  }
+  if(id==='bl'){
+    [[3,'rgba(61,142,240,.1)'],[6,'rgba(61,142,240,.2)'],[12,'rgba(61,142,240,.35)'],[36,'rgba(0,232,122,.35)']].forEach(([intv,c])=>{
+      const si=Math.max(1,s(intv));for(let y=si;y<H;y+=si)l(0,y,W,y,c);
+    });
+    lb(4,4,'3px fine / 6px type / 12px component / 36px structural','rgba(61,142,240,.4)');return;
+  }
+  if(id==='mo'){
+    for(let sec=0;sec<3;sec++){const sx=s(d.n+sec*SW+d.p);for(let c=0;c<S.c;c++)r(sx+c*(s(d.cw)+s(d.gu)),ct,s(d.cw),ch,'rgba(61,142,240,.04)','rgba(61,142,240,.12)');}
+    const rh=Math.max(2,s(36));for(let y=ct;y<H;y+=rh)l(0,y,W,y,'rgba(0,232,122,.1)');
+    lb(4,2,'Modular: columns x baseline rows');return;
+  }
+  if(id==='go'){
+    const phi=1.618;
+    for(let sec=0;sec<3;sec++){
+      const sx=s(d.n+sec*SW),sw=s(SW),a2=Math.round(sw/phi);
+      r(sx,ct,a2,ch,'rgba(255,200,50,.04)','rgba(255,200,50,.18)');
+      r(sx+a2,ct,sw-a2,ch,'rgba(255,200,50,.025)','rgba(255,200,50,.1)');
+      lb(sx+2,ct+2,Math.round(SW/phi)+'px phi','rgba(255,200,50,.4)');
+    }
+    lb(4,2,'Golden ratio phi=1.618','rgba(255,200,50,.35)');return;
+  }
+  const n=id==='c8'?8:id==='c4'?4:S.c;
+  const gc=['rgba(61,142,240,.06)','rgba(61,142,240,.035)'];
+  for(let sec=0;sec<3;sec++){
+    const uw=s(SW-d.p*2),gg=Math.max(1,Math.round(uw/(n*7))),gcw=Math.round((uw-(n-1)*gg)/n);
+    const sx=s(d.n+sec*SW+d.p);
+    for(let c=0;c<n;c++){r(sx+c*(gcw+gg),ct,gcw,ch,gc[c%2],'rgba(61,142,240,.18)');if(c<n-1)lb(sx+c*(gcw+gg)+2,ct+2,c+1,'rgba(61,142,240,.3)');}
+  }
+  [1,2].forEach(i=>l(s(d.n+SW*i),ct,s(d.n+SW*i),H-nn-b,'rgba(255,255,255,.15)'));
+  lb(4,2,n+'-col: col:'+Math.round(d.cw)+'px gut:'+Math.round(d.gu)+'px','rgba(255,255,255,.2)');
+}
+
+// TAB SWITCH
+function sw(id,btn){
+  document.querySelectorAll('.pn').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  document.getElementById(id).classList.add('on');btn.classList.add('on');
+  setTimeout(()=>upd(),30);
+}
+
+// VARIABLE SETTERS
+function sv(k,v){S[k]=Number(v);upd();}
+function sz(v){S.z=v/100;document.getElementById('zv').textContent=v+'%';upd();}
+function rst(){
+  Object.assign(S,D);
+  ['n','b','p','c','s','tm','td'].forEach(k=>{const r=document.getElementById('r'+k);if(r)r.value=D[k];});
+  const rz=document.getElementById('rz');if(rz)rz.value=Math.round(D.z*100);
+  document.getElementById('zv').textContent=Math.round(D.z*100)+'%';
+  upd();
+}
+
+// MOTION
+function ab(wrap,dur,ease){
+  const b=wrap.querySelector('.mb');b.style.transition='none';b.style.width='0%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    b.style.transition=`width ${dur}ms ${ease}`;b.style.width='100%';
+    setTimeout(()=>{b.style.transition=`width ${dur}ms ${ease}`;b.style.width='0%';},dur+80);
+  }));
+}
+let lo=false,lt=null;
+function tl(){
+  const b=document.getElementById('lb');
+  if(lo){clearTimeout(lt);b.style.transition='none';b.style.width='0%';lo=false;return;}
+  lo=true;let fw=true;
+  const tk=()=>{b.style.transition='width 1100ms linear';b.style.width=fw?'100%':'0%';fw=!fw;lt=setTimeout(tk,1120);};tk();
+}
+
+// INIT
+window.addEventListener('DOMContentLoaded',()=>{
+  upd();
+  document.getElementById('gdesc').textContent=GD['c12'];
+  setTimeout(()=>{const btn=document.querySelector('.gtb.on');if(btn)sg('c12',btn);},80);
+  window.addEventListener('resize',()=>{const d=der(S);bd(d);ugd(CG,d);});
+});
+</script>
+</body></html>

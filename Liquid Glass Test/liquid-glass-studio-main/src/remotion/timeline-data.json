@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "fps": 60,
+  "durationFrames": 360,
+  "events": [
+    {
+      "id": "evt-001",
+      "frame": 60,
+      "componentId": "GlassPanel",
+      "action": "Expand",
+      "params": {},
+      "spring": {
+        "stiffness": 280,
+        "damping": 24,
+        "mass": 1
+      }
+    },
+    {
+      "id": "evt-002",
+      "frame": 240,
+      "componentId": "GlassPanel",
+      "action": "Collapse",
+      "params": {},
+      "spring": {
+        "stiffness": 280,
+        "damping": 24,
+        "mass": 1
+      }
+    },
+    {
+      "id": "evt-64fqwmz",
+      "frame": 300,
+      "componentId": "GlassPanel",
+      "action": "Expand",
+      "params": {}
+    },
+    {
+      "id": "evt-m1x8ltr",
+      "frame": 345,
+      "componentId": "GlassPanel",
+      "action": "Collapse",
+      "params": {}
+    }
+  ]
+}

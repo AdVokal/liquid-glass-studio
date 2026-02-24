@@ -1,0 +1,73 @@
+:root {
+  --color-bg: #F8F7F4;
+  --color-surface: #FFFFFF;
+  --color-border: #E0DDD8;
+  --color-text-primary: #1A1A18;
+  --color-text-secondary: #8C8B84;
+  --color-accent: #2563EB;
+  --font-mono: "SF Mono", "Consolas", "Monaco", monospace;
+  --font-size: 12px;
+  --row-height: 34px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-mono);
+  font-size: var(--font-size);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+input, select, button {
+  font-family: var(--font-mono);
+  font-size: var(--font-size);
+  color: var(--color-text-primary);
+}
+
+input {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+}
+
+input:focus {
+  outline: 1px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+select {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 2px 4px;
+  cursor: pointer;
+  outline: none;
+}
+
+select:focus {
+  border-color: var(--color-accent);
+}
+
+button {
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  padding: 4px 10px;
+  color: var(--color-text-primary);
+  user-select: none;
+}
+
+button:hover {
+  background: var(--color-surface);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
