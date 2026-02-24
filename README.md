@@ -1,6 +1,103 @@
-# Liquid Glass Studio
+# UI Studio
 
-A WebGL2-based liquid glass UI component system built with React, Vite, and Remotion. Supports both interactive real-time preview and high-quality video rendering at 3840×536 @ 60fps.
+A WebGL2-based liquid glass UI component system with a JSON-driven animation timeline. Built with React, Vite, and Remotion. Supports interactive real-time preview, frame-accurate video rendering at 3840×536 @ 60fps, and a standalone Timeline Editor for authoring animations without touching code.
+
+---
+
+## Three Apps
+
+| App | Port | Purpose |
+|-----|------|---------|
+| **UI Studio** (Vite) | `:5173` | Interactive live preview — drag, click, tweak visual params |
+| **Remotion Studio** | `:3000` | Frame-accurate animation playback and video render |
+| **Timeline Editor** | `:5174` | Spreadsheet UI for editing animation events in `timeline-data.json` |
+
+---
+
+## Startup & Shutdown
+
+### One command (recommended)
+
+```bash
+# From Liquid Glass Test/
+./start-all.sh
+```
+
+Starts all three apps and opens them in Chrome. To stop everything:
+
+```bash
+./stop-all.sh
+```
+
+### Manual startup
+
+```bash
+# UI Studio — interactive preview
+cd liquid-glass-studio-main
+npm install
+npm run dev
+
+# Remotion Studio — animation timeline
+npm run remotion:studio
+
+# Timeline Editor
+cd timeline-editor
+npm install
+npm run dev
+```
+
+---
+
+## Timeline Editor
+
+The Timeline Editor at `:5174` is the main tool for authoring animations. It reads and writes `liquid-glass-studio-main/src/remotion/timeline-data.json` directly — no code changes needed to update animation timing.
+
+### What it does
+
+- Lists all animation events as editable rows
+- Edit frame numbers or timecodes (HH:MM:SS:FF) — both stay in sync
+- Component and action dropdowns are populated from `timeline-registry.json` (fetched from `:5173`)
+- Param fields render automatically based on the action's definition
+- Drag rows to reorder
+- Right-click any row for Insert / Delete
+- Ctrl+Z / Ctrl+Y for undo/redo (50-step history)
+- Ctrl+S or the Save button writes the file — Remotion Studio hot-reloads instantly
+
+### How animation events work
+
+All animation events live in `src/remotion/timeline-data.json`:
+
+```json
+{
+  "fps": 60,
+  "durationFrames": 360,
+  "events": [
+    { "id": "evt-001", "frame": 60, "componentId": "GlassPanel", "action": "Expand", "params": {} },
+    { "id": "evt-002", "frame": 240, "componentId": "GlassPanel", "action": "Collapse", "params": {} }
+  ]
+}
+```
+
+Each event triggers a spring animation at its frame. Expand and Collapse events accumulate as a signed sum — this means re-expansion after collapse works correctly for any number of events in any order.
+
+### Adding new components
+
+See `liquid-glass-studio-main/COMPONENT-CONVENTIONS.md`.
+
+---
+
+## Rendering to Video
+
+```bash
+cd liquid-glass-studio-main
+npm run remotion:render
+```
+
+Renders `Dashboard` composition to `~/Desktop/dashboard.mp4`.
+
+- Resolution: 3840 × 536
+- Frame rate: 60fps
+- GL backend: ANGLE (hardware WebGL2 via Chromium)
 
 ---
 
@@ -10,160 +107,61 @@ A WebGL2-based liquid glass UI component system built with React, Vite, and Remo
 - **Vite 6** — Dev server and bundler
 - **Remotion 4** — Frame-accurate video rendering
 - **WebGL2** — Custom multi-pass GLSL rendering pipeline
-- **React Spring** — Spring-based animation for both live and rendered motion
+- **React Spring** — Spring animation for live mode
 - **TypeScript** — Strict mode throughout
 - **SCSS Modules** — Scoped component styles
 
 ---
 
-## Running the Project
+## Project Structure
 
-### Frontend (Vite dev server)
-
-```bash
-npm install
-npm run dev
 ```
-
-Opens at `http://localhost:5173` (or next available port).
-
-Interactive mode: drag the glass panel, click to expand/collapse, adjust all visual parameters via the settings sidebar (press `X` to toggle).
-
----
-
-### Remotion Studio
-
-```bash
-npm run remotion:studio
+Liquid Glass Test/
+├── liquid-glass-studio-main/     UI Studio + Remotion (:5173, :3000)
+│   ├── public/
+│   │   └── timeline-registry.json      component/action definitions for autocomplete
+│   ├── src/
+│   │   ├── remotion/
+│   │   │   ├── timeline-data.json      source of truth for all animation events
+│   │   │   ├── DashboardComposition.tsx
+│   │   │   └── Root.tsx
+│   │   ├── types/
+│   │   │   └── timeline.ts             shared TypeScript types
+│   │   └── ...
+│   └── COMPONENT-CONVENTIONS.md
+├── timeline-editor/              Timeline Editor (:5174)
+│   └── src/
+│       ├── App.tsx               state, undo/redo, save
+│       ├── components/
+│       │   ├── Toolbar.tsx
+│       │   ├── FrameRuler.tsx
+│       │   └── TimelineTable.tsx
+│       └── lib/
+│           ├── types.ts
+│           └── utils.ts          frameToTimecode, timecodeToFrame, generateId
+├── start-all.sh
+└── stop-all.sh
 ```
-
-Opens at `http://localhost:3000` (or next available port).
-
-Remotion Studio plays back the animation timeline — the same glass component driven by deterministic frame-based spring easing instead of pointer input.
-
----
-
-### Timeline Editor
-
-```bash
-cd timeline-editor
-npm install
-npm run dev
-```
-
-Opens at `http://localhost:5174`.
-
-Spreadsheet-style editor for `timeline-data.json`. Edit frame numbers, actions, and params — click Save to write the file and trigger Remotion Studio hot-reload instantly.
-
-Requires the Vite dev server (`:5173`) to be running for component registry autocomplete.
-
-See `liquid-glass-studio-main/COMPONENT-CONVENTIONS.md` for how to add new Timeline-controllable components.
-
----
-
-### One-command startup
-
-```bash
-# From Liquid Glass Test/
-./start-all.sh   # starts Vite + Remotion Studio + Timeline Editor, opens 3 Chrome tabs
-./stop-all.sh    # kills all three
-```
-
----
-
-### Rendering to Video
-
-```bash
-npm run remotion:render
-```
-
-Renders `Dashboard` composition to `~/Desktop/dashboard.mp4`.
-
-- Resolution: 3840 × 536
-- Frame rate: 60fps
-- Duration: 360 frames (6 seconds)
-- GL backend: ANGLE (hardware WebGL2 via Chromium)
-
----
-
-## Key File Components
-
-### Entry Points
-
-| File | Role |
-|------|------|
-| `index.html` | HTML shell, mounts `#root` |
-| `src/main.tsx` | React root, renders `<App />` |
-| `src/App.tsx` | Main component — handles both live and Remotion modes |
-| `src/remotion/index.ts` | Registers Remotion compositions |
-| `src/remotion/Root.tsx` | Defines `Dashboard` composition (3840×536, 60fps, 360 frames) |
-| `src/remotion/DashboardComposition.tsx` | Animation timeline — drives `<App />` via frame-based spring |
-
-### Core Logic
-
-| File | Role |
-|------|------|
-| `src/utils/GLUtils.ts` | Full WebGL2 engine: `ShaderProgram`, `FrameBuffer`, `RenderPass`, `MultiPassRenderer` |
-| `src/utils/index.ts` | Gaussian blur kernel computation |
-| `src/config/designSystem.ts` | Global constants: canvas size (3840×536), grid (60px), corner radii, spacing |
-| `src/remotion/timeline.ts` | `TimelineState` type shared between Remotion and App |
-
-### GLSL Shaders (multi-pass pipeline)
-
-| File | Role |
-|------|------|
-| `src/shaders/vertex.glsl` | Fullscreen quad vertex shader, outputs UV coords |
-| `src/shaders/fragment-bg.glsl` | Pass 1: Draws background texture + shadow SDF |
-| `src/shaders/fragment-bg-vblur.glsl` | Pass 2: Vertical Gaussian blur |
-| `src/shaders/fragment-bg-hblur.glsl` | Pass 3: Horizontal Gaussian blur |
-| `src/shaders/fragment-main.glsl` | Pass 4: Full glass effect (refraction, Fresnel, glare, tint, chromatic aberration) |
-
-### Styles
-
-| File | Role |
-|------|------|
-| `src/index.scss` | Global resets and root styles |
-| `src/App.module.scss` | Scoped styles for viewport, canvas container, panel overlay, settings panel |
-
-### Config
-
-| File | Role |
-|------|------|
-| `vite.config.ts` | React SWC, tsconfig path aliases, host: `0.0.0.0` |
-| `remotion.config.ts` | ANGLE GL backend, webpack GLSL loader, SCSS modules |
-| `tsconfig.app.json` | ES2020, strict, DOM libs |
 
 ---
 
 ## WebGL Rendering Pipeline
 
-Four sequential render passes:
-
 ```
-Pass 1: fragment-bg.glsl
-  → Background texture + SDF shadow → Framebuffer A
-
-Pass 2: fragment-bg-vblur.glsl
-  → Framebuffer A (vertical blur) → Framebuffer B
-
-Pass 3: fragment-bg-hblur.glsl
-  → Framebuffer B (horizontal blur) → Framebuffer C
-
-Pass 4: fragment-main.glsl
-  → Framebuffer A (unblurred) + Framebuffer C (blurred) → Screen
+Pass 1: fragment-bg.glsl       → background texture + SDF shadow → FBO A
+Pass 2: fragment-bg-vblur.glsl → vertical Gaussian blur          → FBO B
+Pass 3: fragment-bg-hblur.glsl → horizontal Gaussian blur        → FBO C
+Pass 4: fragment-main.glsl     → glass composite (refraction, Fresnel, glare, tint, chromatic aberration)
 ```
-
-The main pass composes the final glass effect using both the sharp and blurred backgrounds to simulate the glass frosting and refraction distortion.
 
 ---
 
-## Scripts
+## npm Scripts (liquid-glass-studio-main)
 
 ```bash
-npm run dev              # Vite dev server
-npm run build            # TypeScript compile + Vite production build
-npm run preview          # Preview production build
+npm run dev              # Vite dev server :5173
+npm run remotion:studio  # Remotion Studio :3000
+npm run remotion:render  # Render to ~/Desktop/dashboard.mp4
+npm run build            # Production build
 npm run lint             # ESLint
-npm run remotion:studio  # Remotion Studio (interactive timeline preview)
-npm run remotion:render  # Render Dashboard to ~/Desktop/dashboard.mp4
 ```
